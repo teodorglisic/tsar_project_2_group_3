@@ -1,0 +1,45 @@
+---
+title: "TSAR Project Assignment Part2 - Group 3"
+author:
+  - name: Arpad Broglie
+    email: arpad.broglie@students.fhnw.ch
+    corresponding: true
+  - name: Teodor Glisic
+    email: teodor.glisic@students.fhnw.ch
+    corresponding: true
+date: 04/30/2026
+date-format: "YYYY"
+format: 
+  html:
+    code-line-numbers: true
+editor: visual
+execute: 
+  warning: false
+---
+
+## Introduction
+
+### Package installation
+
+```{r}
+if (!require(dplyr)) install.packages("dplyr")
+if (!require(data.table)) install.packages("data.table")
+if (!require(DataExplorer)) install.packages("DataExplorer")
+
+
+library(dplyr)
+library(data.table)
+library(DataExplorer)
+```
+
+### Loading data
+
+```{r}
+myLCdata <- fread("myLCdata.csv")
+
+dirtify <- readRDS(file = "dirtyfy.rds")
+myLCdata_dirty <- dirtify(myLCdata, 3)
+
+# Executing the DataExplorer::create_report() on the dirtified myLCdata in the console
+# create_report(myLCdata_dirty)
+```
