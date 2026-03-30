@@ -29,9 +29,10 @@ if (!require(dplyr)) install.packages("dplyr")
 if (!require(tidyr)) install.packages("tidyr")
 if (!require(data.table)) install.packages("data.table")
 if (!require(DataExplorer)) install.packages("DataExplorer")
-
+if (!require(ggplot2)) install.packages("ggplot2")
 
 library(dplyr)
+library(ggplot2)
 library(tidyr)
 library(data.table)
 library(DataExplorer)
@@ -72,14 +73,73 @@ summary(myLCdata_dirty)
 
 : Explanation of the variables (categorical or numeric)
 
+Empty categorical features can contain the following values:
+
+-   **`NA` or Not Available:** Indicates missing values that R recognizes as missing.
+-   **The string `"n/a"`:** We pretend this string was used in the source data set to indicate missing data. Since it is a string R does not recognize it as missing.
+-   **A space `" "`:** Another special string.
+-   **The empty string `""`:** Another special string.
+
+Empty numerical features can contain the following values:
+
+-   **`NA`:** Standard missing values.
+-   **`NaN` or Not a Number:** Results from invalid computations such as 0/0.
+-   **Outliers:** These were actually not ingested but already present in the data. There is no rigid mathematical definition of what constitutes an outlier. In this task we use Tukey's fences. We count values as outliers if they lie outside the whiskers of the boxplot.
+
 ### Overall NA per feature
 
 ```{r}
+myLCdata_dirty %>% summarise(across(everything(), ~sum(is.na(.))))
+```
 
-myLCdata_dirty %>% summarise(distinct_count = n_distinct(purpose,na.rm = FALSE))
-distinct(myLCdata_dirty,purpose)
+#### Categorical features (purpose, home_ownership)
 
-myLCdata_dirty %>% group_by(purpose) %>% summarise(values_recorded = n()) %>% arrange(desc(purpose))
+```{r}
+
+# old testings
+
+# myLCdata_dirty %>% summarise(distinct_count = n_distinct(purpose,na.rm = FALSE))
+
+# myLCdata_dirty %>% group_by(purpose) %>% summarise(values_recorded = n())
 
 
+# myLCdata_dirty %>% group_by(purpose) %>% summarise(values_recorded = n()) %>% filter(purpose == " " | purpose == "" | purpose == "n/a" | is.na(purpose))
+
+# myLCdata_dirty %>% group_by(home_ownership) %>% summarise(values_recorded = n()) %>% filter(home_ownership == " " | home_ownership == "" | home_ownership == "n/a" | is.na(home_ownership))
+
+# myLCdata_dirty %>% group_by(purpose) %>% summarise(values_recorded = n()) %>% filter(purpose == " " | purpose == "" | purpose == "n/a" | is.na(purpose)) %>% summarise(total_missing = sum(values_recorded))
+
+
+# myLCdata_dirty %>%
+#   filter(if_any(where(is.character), ~ . %in% c(" ", "", "n/a") | is.na(.))) %>%
+#   select(purpose, home_ownership) %>%
+#   group_by(purpose, home_ownership) %>%
+#   count()
+```
+
+```{r}
+myLCdata_dirty_values_categorical <- myLCdata_dirty %>%
+  select(purpose, home_ownership) %>%
+  pivot_longer(cols = everything(), names_to = "columns", values_to = "empty_value") %>%
+  filter(if_any(everything(), ~ . %in% c(" ", "", "n/a") | is.na(.))) %>%
+  mutate(empty_value = case_when(
+    empty_value == "" ~ "empty_string",
+    empty_value == " " ~ "single_space",
+    is.na(empty_value) ~ "NA_value",
+    empty_value == "n/a" ~ "n/a"
+  )) %>%
+  group_by(columns, empty_value) %>% summarise(dirty_value_count = n()) %>%
+  pivot_wider(names_from = empty_value, values_from=dirty_value_count) %>% 
+  mutate(across(where(is.numeric), ~. / nrow(myLCdata_dirty)))
+
+head(myLCdata_dirty_values_categorical)
+
+ggplot_data_categorical <- myLCdata_dirty_values_categorical %>% 
+  pivot_longer(cols=-columns, names_to = "empty_value", values_to = "proportion")
+
+ggplot(ggplot_data_categorical) +
+  geom_col(aes(x = columns, y = proportion)) +
+  coord_flip() + 
+  scale_y_continuous(labels = scales::percent) +
+  facet_wrap(~empty_value, ncol = 1)
 ```
