@@ -11,6 +11,7 @@ date: 04/30/2026
 date-format: "YYYY"
 format: 
   html:
+    toc: true
     code-line-numbers: true
 editor: visual
 execute: 
@@ -19,20 +20,24 @@ execute:
 
 ## Introduction
 
+Data Wrangling with dplyr and tidyr
+
 ### Package installation
 
 ```{r}
 if (!require(dplyr)) install.packages("dplyr")
+if (!require(tidyr)) install.packages("tidyr")
 if (!require(data.table)) install.packages("data.table")
 if (!require(DataExplorer)) install.packages("DataExplorer")
 
 
 library(dplyr)
+library(tidyr)
 library(data.table)
 library(DataExplorer)
 ```
 
-### Loading data
+## Task 1: Exploratory Data Analysis
 
 ```{r}
 myLCdata <- fread("myLCdata.csv")
@@ -42,4 +47,39 @@ myLCdata_dirty <- dirtify(myLCdata, 3)
 
 # Executing the DataExplorer::create_report() on the dirtified myLCdata in the console
 # create_report(myLCdata_dirty)
+```
+
+### Result from DataExplorer::create_report()
+
+![Overview of missing rows by features of the myLCdata_dirty variable](missing_data_profile_from_DataExplorer.png)
+
+## Task 2: Data Wrangling and Visualization
+
+```{r}
+glimpse(myLCdata_dirty)
+str(myLCdata_dirty)
+
+summary(myLCdata_dirty)
+```
+
+| Variable       | Explanation |
+|----------------|-------------|
+| annual_inc     | numerical   |
+| open_acc       | numerical   |
+| purpose        | categorical |
+| home_ownership | categorical |
+| inq_last_6mths | numerical   |
+
+: Explanation of the variables (categorical or numeric)
+
+### Overall NA per feature
+
+```{r}
+
+myLCdata_dirty %>% summarise(distinct_count = n_distinct(purpose,na.rm = FALSE))
+distinct(myLCdata_dirty,purpose)
+
+myLCdata_dirty %>% group_by(purpose) %>% summarise(values_recorded = n()) %>% arrange(desc(purpose))
+
+
 ```
