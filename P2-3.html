@@ -274,62 +274,445 @@ $ inq_last_6mths &lt;dbl&gt; 0, NA, 2, 1, NA, NA, 0, 0, NA, 0, 0, NA, NA, 0, 0, 
 <section id="categorical-features-purpose-home_ownership" class="level4">
 <h4 class="anchored" data-anchor-id="categorical-features-purpose-home_ownership">Categorical features (purpose, home_ownership)</h4>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1"></a><span class="co"># old testings</span></span>
-<span id="cb11-2"><a href="#cb11-2"></a></span>
-<span id="cb11-3"><a href="#cb11-3"></a><span class="co"># myLCdata_dirty %&gt;% summarise(distinct_count = n_distinct(purpose,na.rm = FALSE))</span></span>
-<span id="cb11-4"><a href="#cb11-4"></a></span>
-<span id="cb11-5"><a href="#cb11-5"></a><span class="co"># myLCdata_dirty %&gt;% group_by(purpose) %&gt;% summarise(values_recorded = n())</span></span>
-<span id="cb11-6"><a href="#cb11-6"></a></span>
-<span id="cb11-7"><a href="#cb11-7"></a></span>
-<span id="cb11-8"><a href="#cb11-8"></a><span class="co"># myLCdata_dirty %&gt;% group_by(purpose) %&gt;% summarise(values_recorded = n()) %&gt;% filter(purpose == " " | purpose == "" | purpose == "n/a" | is.na(purpose))</span></span>
-<span id="cb11-9"><a href="#cb11-9"></a></span>
-<span id="cb11-10"><a href="#cb11-10"></a><span class="co"># myLCdata_dirty %&gt;% group_by(home_ownership) %&gt;% summarise(values_recorded = n()) %&gt;% filter(home_ownership == " " | home_ownership == "" | home_ownership == "n/a" | is.na(home_ownership))</span></span>
-<span id="cb11-11"><a href="#cb11-11"></a></span>
-<span id="cb11-12"><a href="#cb11-12"></a><span class="co"># myLCdata_dirty %&gt;% group_by(purpose) %&gt;% summarise(values_recorded = n()) %&gt;% filter(purpose == " " | purpose == "" | purpose == "n/a" | is.na(purpose)) %&gt;% summarise(total_missing = sum(values_recorded))</span></span>
-<span id="cb11-13"><a href="#cb11-13"></a></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1"></a>myLCdata_dirty_values_categorical <span class="ot">&lt;-</span> myLCdata_dirty <span class="sc">%&gt;%</span></span>
+<span id="cb11-2"><a href="#cb11-2"></a>  <span class="fu">select</span>(purpose, home_ownership) <span class="sc">%&gt;%</span></span>
+<span id="cb11-3"><a href="#cb11-3"></a>  <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="fu">everything</span>(), <span class="at">names_to =</span> <span class="st">"columns"</span>, <span class="at">values_to =</span> <span class="st">"empty_value"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb11-4"><a href="#cb11-4"></a>  <span class="fu">filter</span>(<span class="fu">if_any</span>(<span class="fu">everything</span>(), <span class="sc">~</span> . <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">" "</span>, <span class="st">""</span>, <span class="st">"n/a"</span>) <span class="sc">|</span> <span class="fu">is.na</span>(.))) <span class="sc">%&gt;%</span></span>
+<span id="cb11-5"><a href="#cb11-5"></a>  <span class="fu">mutate</span>(<span class="at">empty_value =</span> <span class="fu">case_when</span>(</span>
+<span id="cb11-6"><a href="#cb11-6"></a>    empty_value <span class="sc">==</span> <span class="st">""</span> <span class="sc">~</span> <span class="st">"empty_string"</span>,</span>
+<span id="cb11-7"><a href="#cb11-7"></a>    empty_value <span class="sc">==</span> <span class="st">" "</span> <span class="sc">~</span> <span class="st">"single_space"</span>,</span>
+<span id="cb11-8"><a href="#cb11-8"></a>    <span class="fu">is.na</span>(empty_value) <span class="sc">~</span> <span class="st">"NA_value"</span>,</span>
+<span id="cb11-9"><a href="#cb11-9"></a>    empty_value <span class="sc">==</span> <span class="st">"n/a"</span> <span class="sc">~</span> <span class="st">"n/a"</span></span>
+<span id="cb11-10"><a href="#cb11-10"></a>  )) <span class="sc">%&gt;%</span></span>
+<span id="cb11-11"><a href="#cb11-11"></a>  <span class="fu">group_by</span>(columns, empty_value) <span class="sc">%&gt;%</span> <span class="fu">summarise</span>(<span class="at">dirty_value_count =</span> <span class="fu">n</span>()) <span class="sc">%&gt;%</span></span>
+<span id="cb11-12"><a href="#cb11-12"></a>  <span class="fu">pivot_wider</span>(<span class="at">names_from =</span> empty_value, <span class="at">values_from=</span>dirty_value_count, <span class="at">names_prefix =</span> <span class="st">"percentage_"</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb11-13"><a href="#cb11-13"></a>  <span class="fu">mutate</span>(<span class="fu">across</span>(<span class="fu">where</span>(is.numeric), <span class="sc">~</span>. <span class="sc">/</span> <span class="fu">nrow</span>(myLCdata_dirty)))</span>
 <span id="cb11-14"><a href="#cb11-14"></a></span>
-<span id="cb11-15"><a href="#cb11-15"></a><span class="co"># myLCdata_dirty %&gt;%</span></span>
-<span id="cb11-16"><a href="#cb11-16"></a><span class="co">#   filter(if_any(where(is.character), ~ . %in% c(" ", "", "n/a") | is.na(.))) %&gt;%</span></span>
-<span id="cb11-17"><a href="#cb11-17"></a><span class="co">#   select(purpose, home_ownership) %&gt;%</span></span>
-<span id="cb11-18"><a href="#cb11-18"></a><span class="co">#   group_by(purpose, home_ownership) %&gt;%</span></span>
-<span id="cb11-19"><a href="#cb11-19"></a><span class="co">#   count()</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</div>
-<div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1"></a>myLCdata_dirty_values_categorical <span class="ot">&lt;-</span> myLCdata_dirty <span class="sc">%&gt;%</span></span>
-<span id="cb12-2"><a href="#cb12-2"></a>  <span class="fu">select</span>(purpose, home_ownership) <span class="sc">%&gt;%</span></span>
-<span id="cb12-3"><a href="#cb12-3"></a>  <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="fu">everything</span>(), <span class="at">names_to =</span> <span class="st">"columns"</span>, <span class="at">values_to =</span> <span class="st">"empty_value"</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb12-4"><a href="#cb12-4"></a>  <span class="fu">filter</span>(<span class="fu">if_any</span>(<span class="fu">everything</span>(), <span class="sc">~</span> . <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">" "</span>, <span class="st">""</span>, <span class="st">"n/a"</span>) <span class="sc">|</span> <span class="fu">is.na</span>(.))) <span class="sc">%&gt;%</span></span>
-<span id="cb12-5"><a href="#cb12-5"></a>  <span class="fu">mutate</span>(<span class="at">empty_value =</span> <span class="fu">case_when</span>(</span>
-<span id="cb12-6"><a href="#cb12-6"></a>    empty_value <span class="sc">==</span> <span class="st">""</span> <span class="sc">~</span> <span class="st">"empty_string"</span>,</span>
-<span id="cb12-7"><a href="#cb12-7"></a>    empty_value <span class="sc">==</span> <span class="st">" "</span> <span class="sc">~</span> <span class="st">"single_space"</span>,</span>
-<span id="cb12-8"><a href="#cb12-8"></a>    <span class="fu">is.na</span>(empty_value) <span class="sc">~</span> <span class="st">"NA_value"</span>,</span>
-<span id="cb12-9"><a href="#cb12-9"></a>    empty_value <span class="sc">==</span> <span class="st">"n/a"</span> <span class="sc">~</span> <span class="st">"n/a"</span></span>
-<span id="cb12-10"><a href="#cb12-10"></a>  )) <span class="sc">%&gt;%</span></span>
-<span id="cb12-11"><a href="#cb12-11"></a>  <span class="fu">group_by</span>(columns, empty_value) <span class="sc">%&gt;%</span> <span class="fu">summarise</span>(<span class="at">dirty_value_count =</span> <span class="fu">n</span>()) <span class="sc">%&gt;%</span></span>
-<span id="cb12-12"><a href="#cb12-12"></a>  <span class="fu">pivot_wider</span>(<span class="at">names_from =</span> empty_value, <span class="at">values_from=</span>dirty_value_count) <span class="sc">%&gt;%</span> </span>
-<span id="cb12-13"><a href="#cb12-13"></a>  <span class="fu">mutate</span>(<span class="fu">across</span>(<span class="fu">where</span>(is.numeric), <span class="sc">~</span>. <span class="sc">/</span> <span class="fu">nrow</span>(myLCdata_dirty)))</span>
-<span id="cb12-14"><a href="#cb12-14"></a></span>
-<span id="cb12-15"><a href="#cb12-15"></a><span class="fu">head</span>(myLCdata_dirty_values_categorical)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb11-15"><a href="#cb11-15"></a><span class="fu">head</span>(myLCdata_dirty_values_categorical)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code># A tibble: 2 × 5
 # Groups:   columns [2]
-  columns        NA_value empty_string  `n/a` single_space
-  &lt;chr&gt;             &lt;dbl&gt;        &lt;dbl&gt;  &lt;dbl&gt;        &lt;dbl&gt;
-1 home_ownership   0.0313       0.0935 0.0176       0.159 
-2 purpose          0.0909       0.0520 0.0903       0.0608</code></pre>
+  columns        percentage_NA_value percentage_empty_string `percentage_n/a`
+  &lt;chr&gt;                        &lt;dbl&gt;                   &lt;dbl&gt;            &lt;dbl&gt;
+1 home_ownership              0.0313                  0.0935           0.0176
+2 purpose                     0.0909                  0.0520           0.0903
+# ℹ 1 more variable: percentage_single_space &lt;dbl&gt;</code></pre>
 </div>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1"></a>ggplot_data_categorical <span class="ot">&lt;-</span> myLCdata_dirty_values_categorical <span class="sc">%&gt;%</span> </span>
-<span id="cb14-2"><a href="#cb14-2"></a>  <span class="fu">pivot_longer</span>(<span class="at">cols=</span><span class="sc">-</span>columns, <span class="at">names_to =</span> <span class="st">"empty_value"</span>, <span class="at">values_to =</span> <span class="st">"proportion"</span>)</span>
-<span id="cb14-3"><a href="#cb14-3"></a></span>
-<span id="cb14-4"><a href="#cb14-4"></a><span class="fu">ggplot</span>(ggplot_data_categorical) <span class="sc">+</span></span>
-<span id="cb14-5"><a href="#cb14-5"></a>  <span class="fu">geom_col</span>(<span class="fu">aes</span>(<span class="at">x =</span> columns, <span class="at">y =</span> proportion)) <span class="sc">+</span></span>
-<span id="cb14-6"><a href="#cb14-6"></a>  <span class="fu">coord_flip</span>() <span class="sc">+</span> </span>
-<span id="cb14-7"><a href="#cb14-7"></a>  <span class="fu">scale_y_continuous</span>(<span class="at">labels =</span> scales<span class="sc">::</span>percent) <span class="sc">+</span></span>
-<span id="cb14-8"><a href="#cb14-8"></a>  <span class="fu">facet_wrap</span>(<span class="sc">~</span>empty_value, <span class="at">ncol =</span> <span class="dv">1</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1"></a>ggplot_data_categorical <span class="ot">&lt;-</span> myLCdata_dirty_values_categorical <span class="sc">%&gt;%</span> </span>
+<span id="cb13-2"><a href="#cb13-2"></a>  <span class="fu">pivot_longer</span>(<span class="at">cols=</span><span class="sc">-</span>columns, <span class="at">names_to =</span> <span class="st">"empty_value"</span>, <span class="at">values_to =</span> <span class="st">"proportion"</span>)</span>
+<span id="cb13-3"><a href="#cb13-3"></a></span>
+<span id="cb13-4"><a href="#cb13-4"></a><span class="fu">ggplot</span>(ggplot_data_categorical) <span class="sc">+</span></span>
+<span id="cb13-5"><a href="#cb13-5"></a>  <span class="fu">geom_col</span>(<span class="fu">aes</span>(<span class="at">x =</span> columns, <span class="at">y =</span> proportion)) <span class="sc">+</span></span>
+<span id="cb13-6"><a href="#cb13-6"></a>  <span class="fu">coord_flip</span>() <span class="sc">+</span> </span>
+<span id="cb13-7"><a href="#cb13-7"></a>  <span class="fu">scale_y_continuous</span>(<span class="at">labels =</span> scales<span class="sc">::</span>percent) <span class="sc">+</span></span>
+<span id="cb13-8"><a href="#cb13-8"></a>  <span class="fu">facet_wrap</span>(<span class="sc">~</span>empty_value, <span class="at">ncol =</span> <span class="dv">1</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="P2-3_files/figure-html/unnamed-chunk-5-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="numerical-features-annual_inc-open_accinq_last_6mths" class="level4">
+<h4 class="anchored" data-anchor-id="numerical-features-annual_inc-open_accinq_last_6mths">Numerical features (annual_inc, open_acc,inq_last_6mths)</h4>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1"></a>myLCdata_dirty <span class="sc">%&gt;%</span></span>
+<span id="cb14-2"><a href="#cb14-2"></a>  <span class="fu">summarise</span>(<span class="at">na_count =</span> <span class="fu">sum</span>(<span class="fu">is.na</span>(annual_inc)) <span class="sc">-</span> <span class="fu">sum</span>(<span class="fu">is.nan</span>(annual_inc)))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>  na_count
+1     2192</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1"></a>myLCdata_dirty <span class="sc">%&gt;%</span> </span>
+<span id="cb16-2"><a href="#cb16-2"></a>  <span class="fu">summarise</span>(<span class="at">NAN_values =</span> <span class="fu">sum</span>(<span class="fu">is.nan</span>(annual_inc)))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>  NAN_values
+1       4502</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1"></a><span class="fu">boxplot.stats</span>(myLCdata_dirty<span class="sc">$</span>annual_inc)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>$stats
+[1]   4000  45931  65000  90000 156000
+
+$n
+[1] 37675
+
+$conf
+[1] 64641.27 65358.73
+
+$out
+   [1]  205000.0  184000.0  275000.0  300000.0  275000.0  180000.0  205027.0
+   [8]  185000.0  160000.0  280000.0  175000.0  182596.0  169000.0  172000.0
+  [15]  300000.0  160000.0  294000.0  178000.0  225000.0  185000.0  190000.0
+  [22]  160000.0  200000.0  850000.0  160000.0  220000.0  180000.0  200000.0
+  [29]  174900.0  270000.0  162500.0  215000.0  170000.0  275000.0  250000.0
+  [36]  202290.0  255000.0  300000.0  165000.0  204000.0  160000.0  350000.0
+  [43]  189000.0  165000.0  187834.0  194000.0  200000.0  176200.0  165000.0
+  [50]  195000.0  165000.0  210000.0  180000.0  200000.0  180000.0  415000.0
+  [57]  236000.0  192000.0  175000.0  205000.0  302000.0  180000.0  265000.0
+  [64]  400000.0  159000.0  300000.0  225480.0  188000.0  165000.0  360000.0
+  [71]  215000.0  240000.0  240000.0  200000.0  170000.0  184000.0  300000.0
+  [78]  184000.0  190000.0  207000.0  272000.0  194000.0  190000.0  177000.0
+  [85]  185000.0  200000.0  165000.0  220000.0  158400.0  235000.0  250000.0
+  [92]  177000.0  225000.0  175000.0  205000.0  175000.0  200000.0  250000.0
+  [99]  375000.0  185000.0  435000.0  275000.0  210000.0  175000.0  305000.0
+ [106]  175000.0  314000.0  300000.0  184000.0  165000.0  170692.0  188508.0
+ [113]  230000.0  160000.0  202000.0  180000.0  340000.0  231000.0  230000.0
+ [120]  244000.0  250000.0  385000.0  290000.0  160000.0  253000.0  325000.0
+ [127]  195000.0  160000.0  215099.0  165000.0  180000.0  260000.0  160000.0
+ [134]  197000.0  158734.0  200000.0  200000.0  200000.0  200000.0  178700.0
+ [141]  219000.0  200000.0  295000.0  170000.0  225000.0  169800.0  200000.0
+ [148]  340000.0  168000.0  215000.0  200000.0  220000.0  175000.0  400000.0
+ [155]  300000.0  170000.0  160000.0  190000.0  194000.0  230000.0  185000.0
+ [162]  163000.0  185000.0  175000.0  200000.0  162000.0  225000.0  180000.0
+ [169]  300000.0  225000.0 1200000.0  225000.0  167000.0  165000.0  252000.0
+ [176]  355000.0  232000.0  300000.0  268000.0  181752.0  165000.0  175000.0
+ [183]  175000.0  157000.0  163000.0  200000.0  160000.0  280000.0  160000.0
+ [190]  165000.0  170000.0  187496.0  180000.0  300000.0  190000.0  300000.0
+ [197]  180000.0  219000.0  225000.0  175000.0  160000.0  350000.0  175000.0
+ [204]  365000.0  162000.0  170000.0 1500000.0  270000.0  175000.0  225000.0
+ [211]  170000.0  160000.0  250000.0  200000.0  160000.0  275000.0  250000.0
+ [218]  175000.0  300009.0  311674.0  300000.0  181000.0  240000.0  190000.0
+ [225]  271000.0  185000.0  200000.0  160000.0  190000.0  225000.0  191000.0
+ [232]  240000.0  240000.0  160000.0  170000.0  200000.0  320000.0  240000.0
+ [239]  180000.0  180000.0  178000.0  172000.0  360000.0  165000.0  160000.0
+ [246]  163000.0  300000.0  208000.0  220000.0  175000.0  184000.0  200000.0
+ [253]  165000.0  158000.0  173000.0  168000.0  200000.0  160000.0  180000.0
+ [260]  170000.0  425000.0  200000.0  175000.0  249000.0  236540.0  800000.0
+ [267]  162000.0  160000.0  190000.0  225000.0  172000.0  185000.0  160000.0
+ [274]  200000.0  206000.0  350000.0  200000.0  165000.0  165000.0  200000.0
+ [281]  250000.0  165000.0  161000.0  160000.0  190329.0  209000.0  205000.0
+ [288]  260000.0  220000.0  203000.0  200000.0  200529.0  188000.0  181596.0
+ [295]  350000.0  160000.0  166000.0  165000.0  159000.0  198000.0  180000.0
+ [302]  165000.0  175000.0  275000.0  180000.0  250000.0  278000.0  220000.0
+ [309]  344000.0  200000.0  200000.0  192000.0  225000.0  225000.0  200000.0
+ [316]  160000.0  200000.0  180000.0  264000.0  165000.0  330000.0  175656.0
+ [323]  191500.0  400000.0  175000.0  333000.0  384000.0  225000.0  183000.0
+ [330]  173000.0  199000.0  180000.0  365000.0  200000.0 2000000.0  165000.0
+ [337]  600000.0  205215.0  180000.0  930000.0  160000.0  160000.0  190000.0
+ [344]  160000.0  200000.0  170000.0  169000.0  225000.0  275000.0  230000.0
+ [351]  220000.0  200000.0  174000.0  185500.0  160000.0  200000.0  250000.0
+ [358]  350000.0  200000.0  215000.0  165000.0  183000.0  180000.0  160000.0
+ [365]  175000.0  227000.0  430000.0  170000.0  200000.0  157500.0  175000.0
+ [372]  186500.0  195000.0  216000.0  170000.0  180000.0  240000.0  166000.0
+ [379]  250000.0  250000.0  180000.0  300000.0  465580.0  201000.0  163000.0
+ [386]  166000.0  210000.0  300000.0  197540.0  215000.0  160000.0  172000.0
+ [393]  350000.0  201000.0  165000.0  198000.0  250000.0  220000.0  170000.0
+ [400]  400000.0  166000.0  350000.0  250000.0  193000.0  180000.0  160000.0
+ [407]  170000.0  169000.0  275000.0  176000.0  185000.0  255000.0  160000.0
+ [414]  450000.0  180000.0  170000.0  225000.0  200000.0  215000.0  175000.0
+ [421]  350000.0  235000.0  300000.0  250000.0  200000.0  240000.0  165000.0
+ [428]  160000.0  177000.0  198000.0  225000.0  200000.0  165000.0  180000.0
+ [435]  240000.0  493433.0  295000.0  161567.0  250000.0  300000.0  175000.0
+ [442]  180000.0  210000.0  165000.0  188000.0  180000.0  170000.0  180000.0
+ [449]  200000.0  178000.0  250000.0  265000.0  380000.0  161000.0  225500.0
+ [456]  272000.0  180000.0  425000.0  160000.0  300000.0  185000.0  225000.0
+ [463]  160000.0  196000.0  170000.0  400000.0  221000.0  187400.0  225000.0
+ [470]  300000.0  175000.0  176000.0  179000.0  175000.0  170000.0  200000.0
+ [477]  180000.0  165000.0  750000.0  165000.0  180000.0  225000.0  160000.0
+ [484]  250000.0  168750.0  200000.0  233000.0  225000.0  162000.0  265000.0
+ [491]  165000.0  200000.0  198000.0  200000.0  190912.0  303000.0  285000.0
+ [498]  157800.0  168000.0  300000.0  550000.0  170000.0  225000.0  220000.0
+ [505]  164000.0  215000.0  350000.0  190000.0  158000.0  190000.0  160000.0
+ [512]  170000.0  160000.0  206500.0  250000.0  171000.0  220000.0  300000.0
+ [519]  170000.0  225000.0  245000.0  175000.0  182000.0  210000.0  320000.0
+ [526]  200000.0  175000.0  225000.0  169000.0  225000.0  300000.0  200000.0
+ [533]  223000.0  165000.0  170000.0  175000.0  208000.0  225000.0  215000.0
+ [540]  200000.0  160000.0  185000.0  285000.0  202000.0  185000.0  307000.0
+ [547]  170000.0  175000.0  182000.0  160000.0  245000.0  175000.0  188709.0
+ [554]  170000.0  250000.0  165000.0  165301.0  325000.0  164000.0  170000.0
+ [561]  250000.0  189000.0  231000.0  177500.0  300000.0  200000.0  167000.0
+ [568]  300000.0  246000.0  200000.0  200000.0  186000.0  165000.0  170000.0
+ [575]  540000.0  200000.0  220000.0  192000.0  170000.0  250000.0  250000.0
+ [582]  235000.0  190000.0  200000.0  160000.0  175000.0  220000.0  214704.0
+ [589]  215000.0  525000.0  157000.0  197000.0  235000.0  350000.0  200000.0
+ [596]  450000.0  184000.0  174000.0  175000.0  190000.0  160000.0  185000.0
+ [603]  207182.0  250000.0  160000.0  243000.0  230000.0  317000.0  350000.0
+ [610]  163000.0  157000.0  200000.0  165000.0  250000.0  170000.0  170000.0
+ [617]  170000.0  350000.0  183000.0  175000.0  185000.0  200000.0  220000.0
+ [624]  212000.0  285000.0  260000.0  160000.0  350000.0  275000.0  200000.0
+ [631]  175000.0  180000.0  260000.0  200000.0  200000.0  162000.0  265000.0
+ [638]  375000.0  250000.0  176000.0  200000.0  315000.0  375000.0  249000.0
+ [645]  184000.0  160000.0  170000.0  160000.0  168000.0  180000.0  350000.0
+ [652]  450000.0  180000.0  180000.0 1440000.0  195000.0  390000.0  235000.0
+ [659]  480000.0  250000.0  210000.0  165500.0  274992.0  165000.0  243000.0
+ [666]  162000.0  237500.0  175000.0  260000.0  500000.0  182224.4  250000.0
+ [673]  170000.0  220000.0  220000.0  230000.0  168000.0  300000.0  175000.0
+ [680]  282000.0  175000.0  160000.0  260000.0  210000.0  200000.0  170000.0
+ [687]  250000.0  175000.0  165000.0  317000.0  275000.0  250000.0  250000.0
+ [694]  160000.0  165000.0  225000.0  170000.0  700000.0  300000.0  177800.0
+ [701]  168000.0  165000.0  190000.0  220000.0  160000.0  160000.0  200000.0
+ [708]  160278.0  330000.0  175000.0  200000.0  240000.0  160000.0  200000.0
+ [715]  180000.0  325000.0  246720.0  160000.0  195000.0  195000.0  660000.0
+ [722]  200000.0  265000.0  200000.0  180000.0  165000.0 1200000.0  195000.0
+ [729]  160000.0  162437.0  648000.0  400000.0  165000.0  350000.0  194000.0
+ [736]  170000.0  180000.0  167800.0  180000.0  162000.0  200000.0  160000.0
+ [743]  175000.0  170000.0  225000.0  200000.0  225000.0  178000.0  160000.0
+ [750]  250000.0  160000.0  210000.0  160000.0  350000.0  190000.0  450000.0
+ [757]  250000.0  237000.0  160000.0  180000.0  222000.0  195000.0  200000.0
+ [764]  200000.0  200000.0  180000.0  240000.0  223000.0  160000.0  160000.0
+ [771]  180000.0  200000.0  200000.0  170000.0  178000.0  165000.0  200000.0
+ [778]  160000.0  195000.0  170000.0  216000.0  225000.0  188000.0  180000.0
+ [785]  255000.0  260000.0  325000.0  211680.0  167000.0  160000.0  180000.0
+ [792]  168000.0  185000.0  450000.0  274000.0  170000.0  200000.0  160000.0
+ [799]  200000.0  225000.0  160000.0  160000.0  200000.0  185000.0  197600.0
+ [806]  180000.0  600000.0  174000.0  225000.0  170000.0  188000.0  231000.0
+ [813]  277000.0  200000.0  170000.0  160000.0  156800.0  400000.0  160000.0
+ [820]  165000.0  218000.0  219000.0  180000.0  180000.0  200000.0  240000.0
+ [827]  170000.0  160000.0  450000.0  241000.0  200000.0  290000.0  171250.0
+ [834]  200000.0  225000.0  165000.0  190000.0  159000.0  225000.0  200000.0
+ [841]  175000.0  160000.0  220000.0  175000.0  183000.0  240000.0  170000.0
+ [848]  200000.0  208000.0  210000.0  160000.0  200000.0  161000.0  250000.0
+ [855]  200000.0  190000.0  225000.0  200000.0  182000.0  190000.0  261000.0
+ [862]  160000.0  220000.0  187000.0  240384.0  215000.0  160000.0  172300.0
+ [869]  170000.0  165000.0  198000.0  190000.0  315000.0  280000.0  190000.0
+ [876]  480000.0  230000.0  175000.0  160000.0  210000.0  185000.0  185000.0
+ [883]  250000.0  250000.0  170000.0  176000.0  160000.0 4000095.0  240000.0
+ [890]  234000.0  175000.0  435000.0  237000.0  160000.0  200000.0  210000.0
+ [897]  200000.0  170000.0  240000.0  205000.0  224000.0  295500.0  175000.0
+ [904]  165000.0  162000.0  197000.0  180000.0  198000.0  225000.0  175000.0
+ [911]  160000.0  175000.0  167000.0  195000.0  450000.0  175000.0  193000.0
+ [918]  200000.0  185000.0  184660.0  165000.0  160000.0  165000.0  180000.0
+ [925]  180000.0  160000.0  180000.0  163000.0  250000.0  230000.0  315000.0
+ [932]  160000.0  190000.0  160000.0  200000.0  235000.0  200000.0  280000.0
+ [939]  202888.0  177000.0  275000.0  172000.0  180000.0  210000.0  205000.0
+ [946]  225000.0  161000.0  200000.0  170000.0  255000.0  205000.0  198000.0
+ [953]  400000.0  205000.0  168000.0  170000.0  176000.0  297000.0  206000.0
+ [960]  240000.0  163000.0  210000.0  190000.0  200000.0  165000.0  160000.0
+ [967]  157000.0  160000.0  300000.0  175000.0  185000.0  208000.0  210000.0
+ [974]  168480.0  180000.0  250000.0  235000.0  165000.0  350000.0  160000.0
+ [981]  194100.0  344000.0  750000.0  176000.0  250000.0  174000.0  210000.0
+ [988]  170000.0  250000.0  175000.0  170000.0  200000.0  225000.0  160000.0
+ [995]  180000.0  200000.0  200000.0  310000.0  525000.0  300000.0  185000.0
+[1002]  175000.0  250000.0  178008.0  360000.0  193000.0  165000.0  250000.0
+[1009]  300000.0  160000.0  340000.0  210000.0  165000.0  218000.0  200000.0
+[1016]  200000.0  400000.0  355000.0  200000.0  165000.0  247000.0  160000.0
+[1023]  260000.0  160000.0  200000.0  217000.0  250000.0  158000.0  245000.0
+[1030]  163000.0  180000.0  195000.0  165000.0  200000.0  230000.0  165000.0
+[1037]  200000.0  285000.0  515000.0  160000.0  191000.0  235000.0  220000.0
+[1044]  175000.0  190000.0  225000.0  185000.0  325000.0  260000.0  170000.0
+[1051]  160000.0  175000.0  235000.0  205000.0  180000.0  160000.0  245000.0
+[1058]  200000.0  500000.0  170000.0  161000.0  174000.0  180000.0  357000.0
+[1065]  300000.0  165000.0  205000.0  280000.0  160000.0  175000.0  220000.0
+[1072]  160000.0  240000.0  200000.0  225000.0  170000.0  190000.0  292000.0
+[1079]  270000.0  525000.0  400000.0  165000.0  185000.0  167000.0  300000.0
+[1086]  175000.0  182000.0  187000.0  250000.0  342500.0  230000.0  165000.0
+[1093]  247000.0  250000.0  500000.0  175000.0  200000.0  200000.0  208000.0
+[1100]  180000.0  220000.0  160000.0  215000.0  237000.0  250000.0  320000.0
+[1107]  200000.0  160000.0  175000.0  220000.0  225000.0  360000.0  229933.0
+[1114]  162000.0  205000.0  189000.0  215000.0  165000.0  160000.0  550000.0
+[1121]  212000.0  176500.0  185000.0  180000.0  165000.0  170000.0  200000.0
+[1128]  213000.0  250000.0  185000.0  160000.0  259000.0  175000.0  178000.0
+[1135]  200000.0  162000.0  198000.0  184000.0  202000.0  234000.0  200000.0
+[1142]  159000.0  230153.8  220000.0  174000.0  181000.0  200000.0  200000.0
+[1149]  170000.0  165000.0  500000.0  176000.0  260000.0  160000.0  161595.0
+[1156]  200000.0  410000.0  160000.0  175000.0  260000.0  600000.0  330000.0
+[1163]  235000.0  191000.0  165000.0  302000.0  200000.0  160000.0  179000.0
+[1170]  250000.0  200000.0  185000.0  180000.0  180000.0  170000.0  180000.0
+[1177]  157500.0  167000.0  165000.0  181000.0  350000.0  185000.0  650000.0
+[1184]  250000.0  170000.0  200000.0  168000.0  220000.0  300000.0  250000.0
+[1191]  210000.0  160000.0  160000.0  160000.0  160000.0  190000.0  252946.9
+[1198]  275000.0  215033.0  250000.0  240000.0  165000.0  200000.0  207000.0
+[1205]  180000.0  175000.0  225000.0  190000.0  160000.0  182000.0  160000.0
+[1212]  300000.0  350000.0  225000.0  165000.0  188000.0  165000.0  165000.0
+[1219]  320000.0  190000.0  180000.0  200000.0  180000.0  180000.0  196000.0
+[1226]  325000.0  195000.0  172000.0  200000.0  275000.0  506350.0  275000.0
+[1233]  205000.0  230000.0  160000.0  160000.0  165000.0  175000.0  250000.0
+[1240]  350000.0  215000.0  170000.0  160000.0  200000.0  165000.0  200000.0
+[1247]  165000.0  215000.0  165000.0  520000.0  250000.0  200000.0  165000.0
+[1254]  170000.0  375000.0  185000.0  210000.0  312858.4  200000.0  280000.0
+[1261]  165000.0  175000.0  195000.0  170000.0  200000.0  157500.0  184000.0
+[1268]  160000.0  300000.0  193000.0  230000.0  565000.0  275000.0  170448.0
+[1275]  158000.0  875000.0  160000.0  180952.0  194000.0  187500.0  300000.0
+[1282]  170000.0  205000.0  160000.0  450000.0  166000.0  210000.0  175000.0
+[1289]  160000.0  191000.0  167400.0  450000.0  380000.0  170000.0  180000.0
+[1296]  176000.0  160000.0  350000.0  216000.0  262540.0  175000.0  280000.0
+[1303]  450000.0  360000.0  185000.0  200000.0  300000.0  240000.0  225000.0
+[1310]  398000.0  185000.0  180000.0  206000.0  288000.0  160000.0  225000.0
+[1317]  160000.0  268000.0  250000.0  200000.0  157000.0  228000.0  213000.0
+[1324]  175000.0  300000.0  195000.0  176500.0  350000.0  220000.0  180000.0
+[1331]  160000.0  185000.0  239000.0  300000.0  170000.0  217000.0  160000.0
+[1338]  165000.0  185738.2  198000.0  340000.0  279000.0  168000.0  320000.0
+[1345]  290260.0  180000.0  180000.0  168000.0  180000.0  230000.0  211000.0
+[1352]  215000.0  384000.0  260000.0  275000.0  750000.0  202000.0  185000.0
+[1359]  180000.0  190000.0  200000.0  400000.0  175000.0  180000.0  340000.0
+[1366]  295000.0  168000.0  165000.0  180000.0  186000.0  170000.0  197000.0
+[1373]  214000.0  245000.0  200000.0  160000.0  210000.0  300000.0  176000.0
+[1380]  800000.0  162000.0  220640.0  180000.0  220000.0  185000.0  185000.0
+[1387]  160000.0  400000.0  290000.0  160000.0  250000.0  170000.0  165000.0
+[1394]  200000.0  200000.0  195000.0  165000.0  265000.0  178000.0  181251.0
+[1401]  210000.0  342000.0  215000.0  210000.0  240000.0  350000.0  160000.0
+[1408]  250000.0  170000.0  185000.0  250142.0  185000.0  217900.0  165000.0
+[1415]  225000.0  273000.0  245000.0  200000.0  160000.0  165000.0  220000.0
+[1422]  157000.0  190000.0  350000.0  170000.0  225000.0  336000.0  240000.0
+[1429]  250000.0  170000.0  270000.0  175000.0  220000.0  202000.0  250000.0
+[1436]  160000.0  300000.0  180000.0  160000.0  160000.0  204000.0  300000.0
+[1443]  400000.0  203000.0  168000.0  227000.0  160000.0  275000.0  160000.0
+[1450]  160000.0  160000.0  200000.0  240000.0  250000.0  225000.0  175000.0
+[1457]  212000.0  195000.0  225000.0  163000.0  190000.0  180000.0  175000.0
+[1464]  174000.0  178000.0  550000.0  158000.0  280000.0  400000.0  160000.0
+[1471]  350000.0 6000000.0  168000.0  170000.0  169500.0  210000.0  240000.0
+[1478]  162000.0  172908.0  185000.0  200000.0  183000.0  201000.0  200000.0
+[1485]  165000.0  230000.0  600000.0  200000.0  168000.0  292000.0  180000.0
+[1492]  165000.0  547000.0  165000.0  159000.0  200000.0  196000.0  170000.0
+[1499]  201000.0  225000.0  200000.0  200000.0  160000.0  225000.0  158000.0
+[1506]  585000.0  190000.0  205000.0  185000.0  210000.0  206200.0  225000.0
+[1513]  235000.0  175000.0  168000.0  170000.0  160000.0  170000.0  160000.0
+[1520]  160000.0  170000.0  169400.0  180000.0  235000.0  168000.0  180000.0
+[1527]  170000.0  182000.0  250000.0  212000.0  175000.0  190000.0  160000.0
+[1534]  160000.0  204000.0  180000.0  190000.0  160000.0  165000.0  182000.0
+[1541]  165000.0  165000.0  275000.0  175000.0  300000.0  210000.0  178000.0
+[1548]  205000.0  240000.0  200000.0  195000.0  162000.0  185000.0  170000.0
+[1555]  250000.0  185000.0  300000.0  200000.0  225000.0  185000.0  190000.0
+[1562]  200000.0  175000.0  400000.0  275000.0  200000.0  206000.0  270080.0
+[1569]  180000.0  240000.0  194000.0  165000.0  190000.0  165000.0  200000.0
+[1576]  180000.0  172000.0  300000.0  174000.0  425000.0  350000.0  200000.0
+[1583]  169000.0  175000.0  216000.0  225000.0  170000.0  157000.0  250000.0
+[1590]  300000.0  170000.0  271000.0  170000.0  222000.0  185000.0  180000.0
+[1597]  500000.0  160000.0  260000.0  200000.0  160000.0  160000.0  180000.0
+[1604]  160000.0  270000.0  175000.0  170000.0  180000.0  180000.0  200000.0
+[1611]  160000.0  310000.0  195000.0  185000.0  175000.0  160000.0  275000.0
+[1618]  165000.0  171258.0  160000.0  175000.0  850000.0  171600.0  200000.0
+[1625]  190000.0  186000.0  175000.0  240000.0  200000.0  170000.0  950000.0
+[1632]  160000.0  300000.0  350000.0  170000.0  235200.0  205000.0  162000.0
+[1639]  175000.0  315000.0  160000.0  170000.0  216000.0  188000.0  300000.0
+[1646]  160000.0  160000.0  400000.0  170000.0  175000.0  204218.0  190200.0
+[1653]  165000.0  180000.0  275000.0  250000.0  325000.0  160000.0  262000.0
+[1660]  300000.0  265000.0  200000.0  185000.0  210000.0  300000.0  160000.0
+[1667]  211000.0  183000.0  200000.0  200000.0  305000.0  240000.0  168000.0
+[1674]  175000.0  201000.0  212000.0  160000.0  337871.0  195000.0  215000.0
+[1681]  200000.0  195000.0  256000.0  350000.0  205000.0  342500.0  400000.0
+[1688]  200000.0  200000.0  220000.0  226000.0  250000.0  190000.0  270000.0
+[1695]  200000.0  180000.0  158700.0  475000.0  205000.0  250000.0  170000.0
+[1702]  168000.0  240000.0  175000.0  221000.0  277343.0  180000.0  160000.0
+[1709]  240000.0  250000.0  165000.0  248000.0  438000.0  170000.0  210000.0
+[1716]  185000.0  180000.0  200000.0  160000.0  250000.0  195000.0  239000.0
+[1723]  504000.0  170000.0  280000.0  160000.0  200000.0  190000.0  660000.0</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1"></a><span class="fu">ggplot</span>(myLCdata_dirty) <span class="sc">+</span> <span class="fu">geom_boxplot</span>(<span class="fu">aes</span>(<span class="at">y=</span>annual_inc)) <span class="sc">+</span> <span class="fu">scale_y_log10</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
 <p><img src="P2-3_files/figure-html/unnamed-chunk-6-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1"></a><span class="co"># all rows</span></span>
+<span id="cb21-2"><a href="#cb21-2"></a><span class="fu">nrow</span>(myLCdata_dirty)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 44369</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1"></a><span class="co"># is.na() returns TRUE for both NA and NaN, however is. nan() return TRUE for NaN (0/0) and FALSE for NA</span></span>
+<span id="cb23-2"><a href="#cb23-2"></a>myLCdata_dirty <span class="sc">%&gt;%</span> <span class="fu">select</span>(annual_inc, open_acc, inq_last_6mths) <span class="sc">%&gt;%</span> <span class="fu">filter</span>(<span class="fu">if_any</span>(<span class="fu">everything</span>(), <span class="sc">~</span><span class="fu">is.na</span>(.))) <span class="sc">%&gt;%</span> <span class="fu">summarise</span>(<span class="fu">across</span>(<span class="fu">everything</span>(), <span class="sc">~</span><span class="fu">sum</span>(<span class="fu">is.na</span>(.))))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>  annual_inc open_acc inq_last_6mths
+1       6694     7962          11321</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb25"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1"></a><span class="co"># just NA values</span></span>
+<span id="cb25-2"><a href="#cb25-2"></a>myLCdata_dirty <span class="sc">%&gt;%</span> </span>
+<span id="cb25-3"><a href="#cb25-3"></a>  <span class="fu">select</span>(annual_inc, open_acc, inq_last_6mths) <span class="sc">%&gt;%</span> </span>
+<span id="cb25-4"><a href="#cb25-4"></a>  <span class="fu">filter</span>(<span class="fu">if_any</span>(<span class="fu">everything</span>(), <span class="sc">~</span><span class="fu">is.na</span>(.))) <span class="sc">%&gt;%</span> </span>
+<span id="cb25-5"><a href="#cb25-5"></a>  <span class="fu">summarise</span>(<span class="fu">across</span>(<span class="fu">everything</span>(), <span class="sc">~</span><span class="fu">sum</span>(<span class="fu">is.na</span>(.))<span class="sc">-</span><span class="fu">sum</span>(<span class="fu">is.nan</span>(.))))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>  annual_inc open_acc inq_last_6mths
+1       2192     3338           4081</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb27"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1"></a><span class="co"># just NAN values</span></span>
+<span id="cb27-2"><a href="#cb27-2"></a>myLCdata_dirty <span class="sc">%&gt;%</span> </span>
+<span id="cb27-3"><a href="#cb27-3"></a>  <span class="fu">select</span>(annual_inc, open_acc, inq_last_6mths) <span class="sc">%&gt;%</span> </span>
+<span id="cb27-4"><a href="#cb27-4"></a>  <span class="fu">filter</span>(<span class="fu">if_any</span>(<span class="fu">everything</span>(), <span class="sc">~</span><span class="fu">is.na</span>(.))) <span class="sc">%&gt;%</span> </span>
+<span id="cb27-5"><a href="#cb27-5"></a>  <span class="fu">summarise</span>(<span class="fu">across</span>(<span class="fu">everything</span>(), <span class="sc">~</span><span class="fu">sum</span>(<span class="fu">is.nan</span>(.))))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>  annual_inc open_acc inq_last_6mths
+1       4502     4624           7240</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb29"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1"></a><span class="co"># outliers in features</span></span>
+<span id="cb29-2"><a href="#cb29-2"></a>myLCdata_dirty <span class="sc">%&gt;%</span> </span>
+<span id="cb29-3"><a href="#cb29-3"></a>  <span class="fu">select</span>(annual_inc, open_acc, inq_last_6mths) <span class="sc">%&gt;%</span> </span>
+<span id="cb29-4"><a href="#cb29-4"></a>  <span class="fu">summarise</span>(<span class="fu">across</span>(<span class="fu">everything</span>(), <span class="sc">~</span><span class="fu">length</span>(<span class="fu">boxplot.stats</span>(.x)<span class="sc">$</span>out)))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>  annual_inc open_acc inq_last_6mths
+1       1729     1145           2022</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb31"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1"></a><span class="co"># proportional table of NA and NAN values</span></span>
+<span id="cb31-2"><a href="#cb31-2"></a>table_NA_NAN_perc <span class="ot">&lt;-</span> myLCdata_dirty <span class="sc">%&gt;%</span> </span>
+<span id="cb31-3"><a href="#cb31-3"></a>  <span class="fu">select</span>(annual_inc, open_acc, inq_last_6mths) <span class="sc">%&gt;%</span> </span>
+<span id="cb31-4"><a href="#cb31-4"></a>  <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="fu">everything</span>(), <span class="at">names_to =</span> <span class="st">"feature"</span>, <span class="at">values_to =</span> <span class="st">"values"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb31-5"><a href="#cb31-5"></a>  <span class="fu">filter</span>(<span class="fu">if_any</span>(<span class="fu">everything</span>(), <span class="sc">~</span><span class="fu">is.na</span>(.))) <span class="sc">%&gt;%</span></span>
+<span id="cb31-6"><a href="#cb31-6"></a>  <span class="fu">group_by</span>(feature, values) <span class="sc">%&gt;%</span></span>
+<span id="cb31-7"><a href="#cb31-7"></a>  <span class="fu">summarise</span>(<span class="at">count =</span> <span class="fu">n</span>()) <span class="sc">%&gt;%</span></span>
+<span id="cb31-8"><a href="#cb31-8"></a>  <span class="fu">mutate</span>(<span class="fu">across</span>(is.numeric, <span class="sc">~</span>.<span class="sc">/</span><span class="fu">nrow</span>(myLCdata_dirty))) <span class="sc">%&gt;%</span></span>
+<span id="cb31-9"><a href="#cb31-9"></a>  <span class="fu">pivot_wider</span>(<span class="at">names_from =</span> values, <span class="at">values_from =</span> count, <span class="at">names_prefix =</span> <span class="st">"percentage_"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb32"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1"></a><span class="co"># length of outliers</span></span>
+<span id="cb32-2"><a href="#cb32-2"></a>table_outliers_perc <span class="ot">&lt;-</span> myLCdata_dirty <span class="sc">%&gt;%</span> </span>
+<span id="cb32-3"><a href="#cb32-3"></a>  <span class="fu">select</span>(annual_inc, open_acc, inq_last_6mths) <span class="sc">%&gt;%</span> </span>
+<span id="cb32-4"><a href="#cb32-4"></a>  <span class="fu">summarise</span>(<span class="fu">across</span>(<span class="fu">everything</span>(), <span class="sc">~</span><span class="fu">length</span>(<span class="fu">boxplot.stats</span>(.x)<span class="sc">$</span>out))) <span class="sc">%&gt;%</span></span>
+<span id="cb32-5"><a href="#cb32-5"></a>  <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="fu">everything</span>(), <span class="at">names_to =</span> <span class="st">"feature"</span>, <span class="at">values_to =</span> <span class="st">"percentage_outliers"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb32-6"><a href="#cb32-6"></a>  <span class="fu">mutate</span>(<span class="fu">across</span>(is.numeric, <span class="sc">~</span>.<span class="sc">/</span><span class="fu">nrow</span>(myLCdata_dirty)))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb33"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1"></a><span class="co">#Joining the two tables together (I understand it could be done quicker, but I wanted to test all the functionalities of dplyr)</span></span>
+<span id="cb33-2"><a href="#cb33-2"></a>analysis_missing_numeric <span class="ot">&lt;-</span> table_NA_NAN_perc <span class="sc">%&gt;%</span> <span class="fu">inner_join</span>(table_outliers_perc, <span class="at">by=</span><span class="st">"feature"</span>)</span>
+<span id="cb33-3"><a href="#cb33-3"></a>analysis_missing_numeric</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 3 × 4
+# Groups:   feature [3]
+  feature        percentage_NaN percentage_NA percentage_outliers
+  &lt;chr&gt;                   &lt;dbl&gt;         &lt;dbl&gt;               &lt;dbl&gt;
+1 annual_inc              0.101        0.0494              0.0390
+2 inq_last_6mths          0.163        0.0920              0.0456
+3 open_acc                0.104        0.0752              0.0258</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb35"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1"></a><span class="co">#The same just shorter (from Gemini for reference)</span></span>
+<span id="cb35-2"><a href="#cb35-2"></a>myLCdata_dirty <span class="sc">%&gt;%</span></span>
+<span id="cb35-3"><a href="#cb35-3"></a>  <span class="fu">summarise</span>(</span>
+<span id="cb35-4"><a href="#cb35-4"></a>    <span class="fu">across</span>(</span>
+<span id="cb35-5"><a href="#cb35-5"></a>      <span class="fu">c</span>(annual_inc, open_acc, inq_last_6mths),</span>
+<span id="cb35-6"><a href="#cb35-6"></a>      <span class="fu">list</span>(</span>
+<span id="cb35-7"><a href="#cb35-7"></a>        <span class="at">percentage_NaN =</span> <span class="sc">~</span> <span class="fu">sum</span>(<span class="fu">is.nan</span>(.x)) <span class="sc">/</span> <span class="fu">n</span>(),</span>
+<span id="cb35-8"><a href="#cb35-8"></a>        <span class="at">percentage_NA =</span> <span class="sc">~</span> <span class="fu">sum</span>(<span class="fu">is.na</span>(.x) <span class="sc">&amp;</span> <span class="sc">!</span><span class="fu">is.nan</span>(.x)) <span class="sc">/</span> <span class="fu">n</span>(),</span>
+<span id="cb35-9"><a href="#cb35-9"></a>        <span class="at">percentage_outliers =</span> <span class="sc">~</span> <span class="fu">length</span>(<span class="fu">boxplot.stats</span>(.x)<span class="sc">$</span>out) <span class="sc">/</span> <span class="fu">n</span>()</span>
+<span id="cb35-10"><a href="#cb35-10"></a>      )</span>
+<span id="cb35-11"><a href="#cb35-11"></a>    )</span>
+<span id="cb35-12"><a href="#cb35-12"></a>  ) <span class="sc">%&gt;%</span></span>
+<span id="cb35-13"><a href="#cb35-13"></a>  <span class="fu">pivot_longer</span>(</span>
+<span id="cb35-14"><a href="#cb35-14"></a>    <span class="at">cols =</span> <span class="fu">everything</span>(),</span>
+<span id="cb35-15"><a href="#cb35-15"></a>    <span class="at">names_to =</span> <span class="fu">c</span>(<span class="st">"feature"</span>, <span class="st">".value"</span>),</span>
+<span id="cb35-16"><a href="#cb35-16"></a>    <span class="at">names_pattern =</span> <span class="st">"(.*)_(percentage_.*)"</span></span>
+<span id="cb35-17"><a href="#cb35-17"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 3 × 4
+  feature        percentage_NaN percentage_NA percentage_outliers
+  &lt;chr&gt;                   &lt;dbl&gt;         &lt;dbl&gt;               &lt;dbl&gt;
+1 annual_inc              0.101        0.0494              0.0390
+2 open_acc                0.104        0.0752              0.0258
+3 inq_last_6mths          0.163        0.0920              0.0456</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb37"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1"></a>ggplot_data_numeric <span class="ot">&lt;-</span> analysis_missing_numeric <span class="sc">%&gt;%</span></span>
+<span id="cb37-2"><a href="#cb37-2"></a>  <span class="fu">pivot_longer</span>(<span class="sc">-</span>feature, <span class="at">names_to =</span> <span class="st">"type"</span>, <span class="at">values_to =</span> <span class="st">"values"</span>)</span>
+<span id="cb37-3"><a href="#cb37-3"></a></span>
+<span id="cb37-4"><a href="#cb37-4"></a><span class="fu">ggplot</span>(ggplot_data_numeric) <span class="sc">+</span> </span>
+<span id="cb37-5"><a href="#cb37-5"></a>  <span class="fu">geom_col</span>(<span class="fu">aes</span>(<span class="at">x=</span>feature, <span class="at">y=</span>values)) <span class="sc">+</span> </span>
+<span id="cb37-6"><a href="#cb37-6"></a>  <span class="fu">coord_flip</span>() <span class="sc">+</span></span>
+<span id="cb37-7"><a href="#cb37-7"></a>  <span class="fu">scale_y_continuous</span>(<span class="at">labels =</span> scales<span class="sc">::</span>percent) <span class="sc">+</span></span>
+<span id="cb37-8"><a href="#cb37-8"></a>  <span class="fu">facet_wrap</span>(<span class="sc">~</span>type, <span class="at">ncol =</span> <span class="dv">1</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="P2-3_files/figure-html/unnamed-chunk-13-1.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
