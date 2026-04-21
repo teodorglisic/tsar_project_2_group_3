@@ -1,5 +1,5 @@
 ---
-title: "TSAR Project Assignment Part2 - Group 3"
+title: "TSAR Project Assignment Part 2 - Group 3"
 author:
   - name: Arpad Broglie
     email: arpad.broglie@students.fhnw.ch
@@ -10,9 +10,9 @@ author:
 date: 04/30/2026
 date-format: "YYYY"
 format: 
-  html:
+  pdf:
     toc: true
-    code-line-numbers: true
+    colorlinks: true
 editor: visual
 execute: 
   warning: false
@@ -20,7 +20,9 @@ execute:
 
 ## Introduction
 
-Data Wrangling with dplyr and tidyr
+In this project, we explore the pre-processing step of data wrangling. We do this using dplyr and tidyr. Real-world datasets often are filled with missing values and anomalies. When performing calculations on these dataset this may result in problems. Therefore we first have to perform automated Exploratory Data Analysis (EDA) using the DataExplorer package. This will help to establish an overview of the missing data. Subsequently, we manually wrangle the data to identify and quantify the "dirty" values. We consider empty strings, spaces, NaN values and statistical outliers across all categorical and numerical attributes as dirty values.
+
+The goal is to assess the dataset's quality to inform future data cleaning decisions.
 
 ### Package installation
 
@@ -116,6 +118,44 @@ ggplot_data_categorical <- myLCdata_dirty_values_categorical %>%
 
 ggplot(ggplot_data_categorical) +
   geom_col(aes(x = columns, y = proportion)) +
+  coord_flip() + 
+  scale_y_continuous(labels = scales::percent) +
+  facet_wrap(~empty_value, ncol = 1)
+```
+
+**Categorical features 2**
+
+Calculate the percentages for all character columns dynamically. As illustrated in \@fig-categorical, the character attributes contain various forms of missing data beyond standard NAs.
+
+```{r}
+#| label: fig-categorical
+#| fig-cap: "Percentage of special values in the character attributes of myLCdata"
+
+# Calculate percentages for all character columns dynamically
+myLCdata_dirty_values_categorical <- myLCdata_dirty %>%
+  summarise(
+    across(
+      where(is.character),
+      list(
+        perc_NA = ~ sum(is.na(.)) / n(),
+        perc_empty_string = ~ sum(. == "", na.rm = TRUE) / n(),
+        perc_space = ~ sum(. == " ", na.rm = TRUE) / n(),
+        perc_na_string = ~ sum(. == "n/a", na.rm = TRUE) / n()
+      )
+    )
+  ) %>%
+  pivot_longer(
+    cols = everything(),
+    names_to = c("attribute", ".value"),
+    names_pattern = "(.*)_(perc_.*)"
+  )
+
+# Plotting the categorical data
+ggplot_data_categorical <- myLCdata_dirty_values_categorical %>% 
+  pivot_longer(cols = -attribute, names_to = "empty_value", values_to = "proportion")
+
+ggplot(ggplot_data_categorical) +
+  geom_col(aes(x = attribute, y = proportion)) +
   coord_flip() + 
   scale_y_continuous(labels = scales::percent) +
   facet_wrap(~empty_value, ncol = 1)
@@ -219,3 +259,48 @@ ggplot(ggplot_data_numeric) +
   scale_y_continuous(labels = scales::percent) +
   facet_wrap(~type, ncol = 1)
 ```
+
+**Numerical Features 2**
+
+\@fig-numerical details the prevalence of standard missing values, invalid computations (NaN), and outliers across all numerical attributes.
+
+```{r}
+#| label: fig-numerical
+#| fig-cap: "Percentage of special values in the numerical attributes of myLCdata"
+
+# Calculate percentages for all numerical columns dynamically
+analysis_missing_numeric <- myLCdata_dirty %>%
+  summarise(
+    across(
+      where(is.numeric),
+      list(
+        perc_NA = ~ sum(is.na(.) & !is.nan(.)) / n(),
+        perc_NaN = ~ sum(is.nan(.)) / n(),
+        perc_outliers = ~ length(boxplot.stats(.)$out) / n()
+      )
+    )
+  ) %>%
+  pivot_longer(
+    cols = everything(),
+    names_to = c("attribute", ".value"),
+    names_pattern = "(.*)_(perc_.*)"
+  )
+
+head(analysis_missing_numeric)
+
+# Plotting the numerical data
+ggplot_data_numeric <- analysis_missing_numeric %>%
+  pivot_longer(cols = -attribute, names_to = "type", values_to = "proportion")
+
+ggplot(ggplot_data_numeric) + 
+  geom_col(aes(x = attribute, y = proportion)) + 
+  coord_flip() +
+  scale_y_continuous(labels = scales::percent) +
+  facet_wrap(~type, ncol = 1)
+```
+
+**Conclusion**
+
+Through this analysis we found the missing and special values within our dataset. While automated tools like DataExplorer are excellent for identifying standard NA values, our manual wrangling revealed that significant portions of the missing data we disguised as empty string, spaces, "n/a" text strings.
+
+Using Tukey's fences allowed us to systematically isolate outliers in numerical features. By combining `dplyr` for calculation and `tidyr` for reshaping the data, we were able to effectively visualize the true extent of the dataset's inconsistencies. This layed the groundwork for the formal data cleaning phase.
