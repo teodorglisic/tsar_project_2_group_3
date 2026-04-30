@@ -21,9 +21,11 @@ execute:
 
 ## Introduction
 
-In this project, we explore the pre-processing step of data wrangling. We do this using dplyr and tidyr. Real-world datasets often are filled with missing values and anomalies. When performing calculations on these dataset this may result in problems. Therefore we first have to perform automated Exploratory Data Analysis (EDA) using the DataExplorer package. This will help to establish an overview of the missing data. Subsequently, we manually wrangle the data to identify and quantify the "dirty" values. We consider empty strings, spaces, NaN values and statistical outliers across all categorical and numerical attributes as dirty values.
+In this project, we explore the pre-processing step of data wrangling. We do this using dplyr and tidyr. Real-world datasets often are filled with missing values and anomalies. When performing calculations on these datasets this may result in problems. Therefore we first have to perform automated Exploratory Data Analysis (EDA) using the DataExplorer package. This will help to establish an overview of the missing data. Subsequently, we manually wrangle the data to identify and quantify the "dirty" values. We consider empty strings, spaces, NaN values and statistical outliers across all categorical and numerical attributes as dirty values.
 
 The goal is to assess the dataset's quality to inform future data cleaning decisions.
+
+{{< pagebreak >}}
 
 ### Package installation
 
@@ -62,7 +64,7 @@ myLCdata_dirty <- dirtify(myLCdata, 3)
 
 ### Result from DataExplorer::create_report()
 
-![Presents an overview of missing rows by features of the myLCdata_dirty variable. The home_ownership feature is the most complete and the only one categorized as good.](missing_data_profile_from_DataExplorer.png){#fig-missing-data-profile width="608"}
+![Presents an overview of missing rows by features of the myLCdata_dirty variable.](missing_data_profile_from_DataExplorer.png){#fig-missing-data-profile width="608"}
 
 ## Task 2: Data Wrangling and Visualization
 
@@ -96,7 +98,7 @@ Empty numerical features can contain the following values:
 
 -   **`NA`:** Standard missing values.
 -   **`NaN` or Not a Number:** Results from invalid computations such as 0/0.
--   **Outliers:** These were actually not ingested but already present in the data. There is no rigid mathematical definition of what constitutes an outlier. In this task we use Tukey's fences. We count values as outliers if they lie outside the whiskers of the boxplot.
+-   **Outliers:** These were actually not ingested but already present in the data. There is no rigid mathematical definition of what constitutes an outlier. In this task we use Tukey's fences to visualise them. We count values as outliers if they lie outside the whiskers of the boxplot.
 
 ### Overall NA per feature
 
