@@ -51,13 +51,14 @@ myLCdata <- fread("myLCdata.csv")
 dirtify <- readRDS(file = "dirtyfy.rds")
 myLCdata_dirty <- dirtify(myLCdata, 3)
 
-# Executing the DataExplorer::create_report() on the dirtified myLCdata in the console
+# Executing the DataExplorer::create_report() 
+# on the dirtified myLCdata in the console
 # create_report(myLCdata_dirty)
 ```
 
 ### Result from DataExplorer::create_report()
 
-![Presents an overview of missing rows by features of the myLCdata_dirty variable. The home_ownership feature is the most complete and the only one categorized as good.](missing_data_profile_from_DataExplorer.png)
+![Presents an overview of missing rows by features of the myLCdata_dirty variable. The home_ownership feature is the most complete and the only one categorized as good.](missing_data_profile_from_DataExplorer.png){width="608"}
 
 ## Task 2: Data Wrangling and Visualization
 
@@ -67,6 +68,8 @@ str(myLCdata_dirty)
 
 summary(myLCdata_dirty)
 ```
+
+{{< pagebreak >}}
 
 | Variable       | Explanation |
 |----------------|-------------|
@@ -99,7 +102,7 @@ myLCdata_dirty %>% summarise(across(everything(), ~sum(is.na(.))))
 
 ### Categorical features (purpose, home_ownership)
 
-Calculate the percentages for all character columns dynamically. As illustrated in \@fig-categorical, the character attributes contain various forms of missing data beyond standard NAs.
+Calculate the percentages for all character columns dynamically. As illustrated in @fig-categorical, the character attributes contain various forms of missing data beyond standard NAs.
 
 ```{r}
 #| label: fig-categorical
@@ -108,7 +111,9 @@ Calculate the percentages for all character columns dynamically. As illustrated 
 # Calculate percentages for all categorical columns dynamically
 myLCdata_dirty_values_categorical <- myLCdata_dirty %>%
   select(purpose, home_ownership) %>%
-  pivot_longer(cols = everything(), names_to = "columns", values_to = "empty_value") %>%
+  pivot_longer(cols = everything(), 
+               names_to = "columns", 
+               values_to = "empty_value") %>%
   filter(if_any(everything(), ~ . %in% c(" ", "", "n/a") | is.na(.))) %>%
   mutate(empty_value = case_when(
     empty_value == "" ~ "empty_string",
@@ -117,20 +122,25 @@ myLCdata_dirty_values_categorical <- myLCdata_dirty %>%
     empty_value == "n/a" ~ "n/a"
   )) %>%
   group_by(columns, empty_value) %>% summarise(dirty_value_count = n()) %>%
-  pivot_wider(names_from = empty_value, values_from=dirty_value_count, names_prefix = "percentage_") %>% 
+  pivot_wider(names_from = empty_value, 
+              values_from=dirty_value_count, 
+              names_prefix = "percentage_") %>% 
   mutate(across(where(is.numeric), ~. / nrow(myLCdata_dirty)))
 
 head(myLCdata_dirty_values_categorical)
 
 # Plotting the categorical data
 ggplot_data_categorical <- myLCdata_dirty_values_categorical %>% 
-  pivot_longer(cols=-columns, names_to = "empty_value", values_to = "proportion")
+  pivot_longer(cols=-columns, 
+               names_to = "empty_value", 
+               values_to = "proportion")
 
 ggplot(ggplot_data_categorical) +
   geom_col(aes(x = columns, y = proportion)) +
   coord_flip() + 
   scale_y_continuous(labels = scales::percent) +
-  facet_wrap(~empty_value, ncol = 1)
+  facet_wrap(~empty_value, ncol = 1) +
+  labs(y = "Proportional distribution", x = "Categorical attribute")
 ```
 
 ```         
@@ -138,7 +148,7 @@ ggplot(ggplot_data_categorical) +
 
 ### **Numerical Features**
 
-\@fig-numerical details the prevalence of standard missing values, invalid computations (NaN), and outliers across all numerical attributes.
+@fig-numerical details the prevalence of standard missing values, invalid computations (NaN), and outliers across all numerical attributes.
 
 ```{r}
 #| label: fig-numerical
@@ -172,7 +182,8 @@ ggplot(ggplot_data_numeric) +
   geom_col(aes(x = attribute, y = proportion)) + 
   coord_flip() +
   scale_y_continuous(labels = scales::percent) +
-  facet_wrap(~type, ncol = 1)
+  facet_wrap(~type, ncol = 1) +
+  labs(y = "Proportional distribution", x = "Numerical attribute")
 ```
 
 **Conclusion**
