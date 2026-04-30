@@ -27,6 +27,7 @@ The goal is to assess the dataset's quality to inform future data cleaning decis
 ### Package installation
 
 ```{r}
+# Check for missing packages, install them if necessary, and load them into the environment.
 if (!require(dplyr)) install.packages("dplyr")
 if (!require(tidyr)) install.packages("tidyr")
 if (!require(data.table)) install.packages("data.table")
@@ -43,8 +44,10 @@ library(DataExplorer)
 ## Task 1: Exploratory Data Analysis
 
 ```{r}
+# Load the private dataset
 myLCdata <- fread("myLCdata.csv")
 
+# Apply the dirtyfy function using our group ID (3)
 dirtify <- readRDS(file = "dirtyfy.rds")
 myLCdata_dirty <- dirtify(myLCdata, 3)
 
@@ -54,7 +57,7 @@ myLCdata_dirty <- dirtify(myLCdata, 3)
 
 ### Result from DataExplorer::create_report()
 
-![Overview of missing rows by features of the myLCdata_dirty variable](missing_data_profile_from_DataExplorer.png)
+![Presents an overview of missing rows by features of the myLCdata_dirty variable. The home_ownership feature is the most complete and the only one categorized as good.](missing_data_profile_from_DataExplorer.png)
 
 ## Task 2: Data Wrangling and Visualization
 
@@ -94,9 +97,15 @@ Empty numerical features can contain the following values:
 myLCdata_dirty %>% summarise(across(everything(), ~sum(is.na(.))))
 ```
 
-#### Categorical features (purpose, home_ownership)
+### Categorical features (purpose, home_ownership)
+
+Calculate the percentages for all character columns dynamically. As illustrated in \@fig-categorical, the character attributes contain various forms of missing data beyond standard NAs.
 
 ```{r}
+#| label: fig-categorical
+#| fig-cap: "Percentage of special values in the categorical attributes of myLCdata"
+
+# Calculate percentages for all categorical columns dynamically
 myLCdata_dirty_values_categorical <- myLCdata_dirty %>%
   select(purpose, home_ownership) %>%
   pivot_longer(cols = everything(), names_to = "columns", values_to = "empty_value") %>%
@@ -113,6 +122,7 @@ myLCdata_dirty_values_categorical <- myLCdata_dirty %>%
 
 head(myLCdata_dirty_values_categorical)
 
+# Plotting the categorical data
 ggplot_data_categorical <- myLCdata_dirty_values_categorical %>% 
   pivot_longer(cols=-columns, names_to = "empty_value", values_to = "proportion")
 
@@ -123,144 +133,10 @@ ggplot(ggplot_data_categorical) +
   facet_wrap(~empty_value, ncol = 1)
 ```
 
-**Categorical features 2**
-
-Calculate the percentages for all character columns dynamically. As illustrated in \@fig-categorical, the character attributes contain various forms of missing data beyond standard NAs.
-
-```{r}
-#| label: fig-categorical
-#| fig-cap: "Percentage of special values in the character attributes of myLCdata"
-
-# Calculate percentages for all character columns dynamically
-myLCdata_dirty_values_categorical <- myLCdata_dirty %>%
-  summarise(
-    across(
-      where(is.character),
-      list(
-        perc_NA = ~ sum(is.na(.)) / n(),
-        perc_empty_string = ~ sum(. == "", na.rm = TRUE) / n(),
-        perc_space = ~ sum(. == " ", na.rm = TRUE) / n(),
-        perc_na_string = ~ sum(. == "n/a", na.rm = TRUE) / n()
-      )
-    )
-  ) %>%
-  pivot_longer(
-    cols = everything(),
-    names_to = c("attribute", ".value"),
-    names_pattern = "(.*)_(perc_.*)"
-  )
-
-# Plotting the categorical data
-ggplot_data_categorical <- myLCdata_dirty_values_categorical %>% 
-  pivot_longer(cols = -attribute, names_to = "empty_value", values_to = "proportion")
-
-ggplot(ggplot_data_categorical) +
-  geom_col(aes(x = attribute, y = proportion)) +
-  coord_flip() + 
-  scale_y_continuous(labels = scales::percent) +
-  facet_wrap(~empty_value, ncol = 1)
+```         
 ```
 
-#### Numerical features (annual_inc, open_acc,inq_last_6mths)
-
-```{r}
-myLCdata_dirty %>%
-  summarise(na_count = sum(is.na(annual_inc)) - sum(is.nan(annual_inc)))
-myLCdata_dirty %>% 
-  summarise(NAN_values = sum(is.nan(annual_inc)))
-
-boxplot.stats(myLCdata_dirty$annual_inc)
-
-ggplot(myLCdata_dirty) + geom_boxplot(aes(y=annual_inc)) + scale_y_log10()
-```
-
-```{r}
-
-# all rows
-nrow(myLCdata_dirty)
-
-# is.na() returns TRUE for both NA and NaN, however is. nan() return TRUE for NaN (0/0) and FALSE for NA
-myLCdata_dirty %>% select(annual_inc, open_acc, inq_last_6mths) %>% filter(if_any(everything(), ~is.na(.))) %>% summarise(across(everything(), ~sum(is.na(.))))
-```
-
-```{r}
-# just NA values
-myLCdata_dirty %>% 
-  select(annual_inc, open_acc, inq_last_6mths) %>% 
-  filter(if_any(everything(), ~is.na(.))) %>% 
-  summarise(across(everything(), ~sum(is.na(.))-sum(is.nan(.))))
-
-# just NAN values
-myLCdata_dirty %>% 
-  select(annual_inc, open_acc, inq_last_6mths) %>% 
-  filter(if_any(everything(), ~is.na(.))) %>% 
-  summarise(across(everything(), ~sum(is.nan(.))))
-
-# outliers in features
-myLCdata_dirty %>% 
-  select(annual_inc, open_acc, inq_last_6mths) %>% 
-  summarise(across(everything(), ~length(boxplot.stats(.x)$out)))
-```
-
-```{r}
-# proportional table of NA and NAN values
-table_NA_NAN_perc <- myLCdata_dirty %>% 
-  select(annual_inc, open_acc, inq_last_6mths) %>% 
-  pivot_longer(cols = everything(), names_to = "feature", values_to = "values") %>%
-  filter(if_any(everything(), ~is.na(.))) %>%
-  group_by(feature, values) %>%
-  summarise(count = n()) %>%
-  mutate(across(is.numeric, ~./nrow(myLCdata_dirty))) %>%
-  pivot_wider(names_from = values, values_from = count, names_prefix = "percentage_")
-```
-
-```{r}
-# length of outliers
-table_outliers_perc <- myLCdata_dirty %>% 
-  select(annual_inc, open_acc, inq_last_6mths) %>% 
-  summarise(across(everything(), ~length(boxplot.stats(.x)$out))) %>%
-  pivot_longer(cols = everything(), names_to = "feature", values_to = "percentage_outliers") %>%
-  mutate(across(is.numeric, ~./nrow(myLCdata_dirty)))
-```
-
-```{r}
-#Joining the two tables together (I understand it could be done quicker, but I wanted to test all the functionalities of dplyr)
-analysis_missing_numeric <- table_NA_NAN_perc %>% inner_join(table_outliers_perc, by="feature")
-analysis_missing_numeric
-```
-
-```{r}
-#The same just shorter (from Gemini for reference)
-myLCdata_dirty %>%
-  summarise(
-    across(
-      c(annual_inc, open_acc, inq_last_6mths),
-      list(
-        percentage_NaN = ~ sum(is.nan(.x)) / n(),
-        percentage_NA = ~ sum(is.na(.x) & !is.nan(.x)) / n(),
-        percentage_outliers = ~ length(boxplot.stats(.x)$out) / n()
-      )
-    )
-  ) %>%
-  pivot_longer(
-    cols = everything(),
-    names_to = c("feature", ".value"),
-    names_pattern = "(.*)_(percentage_.*)"
-  )
-```
-
-```{r}
-ggplot_data_numeric <- analysis_missing_numeric %>%
-  pivot_longer(-feature, names_to = "type", values_to = "values")
-
-ggplot(ggplot_data_numeric) + 
-  geom_col(aes(x=feature, y=values)) + 
-  coord_flip() +
-  scale_y_continuous(labels = scales::percent) +
-  facet_wrap(~type, ncol = 1)
-```
-
-**Numerical Features 2**
+### **Numerical Features**
 
 \@fig-numerical details the prevalence of standard missing values, invalid computations (NaN), and outliers across all numerical attributes.
 
@@ -301,6 +177,6 @@ ggplot(ggplot_data_numeric) +
 
 **Conclusion**
 
-Through this analysis we found the missing and special values within our dataset. While automated tools like DataExplorer are excellent for identifying standard NA values, our manual wrangling revealed that significant portions of the missing data we disguised as empty string, spaces, "n/a" text strings.
+Through this analysis we found the missing and special values within our dataset. While automated tools like DataExplorer are excellent for identifying standard NA values, our manual wrangling revealed that significant portions of the missing data were disguised as empty string, spaces, "n/a" text strings.
 
-Using Tukey's fences allowed us to systematically isolate outliers in numerical features. By combining `dplyr` for calculation and `tidyr` for reshaping the data, we were able to effectively visualize the true extent of the dataset's inconsistencies. This layed the groundwork for the formal data cleaning phase.
+Using Tukey's fences allowed us to systematically isolate outliers in numerical features. By combining `dplyr` for calculation and `tidyr` for reshaping the data, we were able to effectively visualize the true extent of the dataset's inconsistencies. This laid the groundwork for the formal data cleaning phase.
